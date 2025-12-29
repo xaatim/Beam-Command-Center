@@ -14,5 +14,11 @@ export default async function Page({
   if (!session) return;
   const robot = await getUserRobot(session.user.id, robotId);
   if (!robot) redirect(refree);
-  return <RobotControRoom intialRobot={robot} />;
+  switch (robot.modelRelation.modelType) {
+    case "Access Control System":
+      return <RobotControRoom intialRobot={robot} />;
+
+    default:
+      return <RobotControRoom intialRobot={robot} />;
+  }
 }

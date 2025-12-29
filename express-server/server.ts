@@ -4,6 +4,7 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import db from "../drizzle/db";
+import { alertTable } from "../drizzle/schemas";
 import {
   AuthenticatedSocket,
   ClientToServerEvents,
@@ -13,7 +14,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: { origin: "*" },
-  
 });
 
 io.use(async (socket: AuthenticatedSocket, next) => {
@@ -94,10 +94,25 @@ io.on("connection", (socket: AuthenticatedSocket) => {
 
   socket.on("robot:frame", (frame) => {
     if (socket.robot) {
-      // console.log("robot sending frames: ",socket.robot?.serialNo)
+      // console.log("robot sending frames: ", socket.robot?.serialNo);
       // console.log("camera recieaved \n", frame);
       robotFrames.set(socket.robot.serialNo, frame);
       socket.broadcast.to(socket.robot.serialNo).emit("robot:stream", frame);
+    }
+  });
+
+  function foo() {}
+  socket.on("robot:alert", async (frame) => {
+    try {
+      // console.log(frame);
+      const imageBase64 = Buffer.from(frame).toString("base64");
+      const dataUri = `data:image/jpeg;base64,${imageBase64}`;
+      console.log("image base 64 is :", dataUri);
+      await db.insert(alertTable).values({
+        imageUrl: dataUri,
+      });
+    } catch (error) {
+      // console.error("failed to save, cause:", (error as Error).message);
     }
   });
 

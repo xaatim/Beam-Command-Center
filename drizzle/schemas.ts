@@ -1,13 +1,13 @@
 import { relations } from "drizzle-orm";
 import {
-  pgTable,
-  text,
-  timestamp,
   boolean,
-  varchar,
-  serial,
   pgEnum,
   pgSequence,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  varchar,
 } from "drizzle-orm/pg-core";
 export type robotType = typeof robotsTable.$inferSelect;
 export type userType = typeof user.$inferSelect;
@@ -18,7 +18,6 @@ export type userRoleType = (typeof userRole.enumValues)[number];
 export const robotSerialNoSeq = pgSequence("robots_serial_no_seq", {
   startWith: 1,
   increment: 1,
-  
 });
 
 export const user = pgTable("user", {
@@ -29,12 +28,8 @@ export const user = pgTable("user", {
     .$defaultFn(() => false)
     .notNull(),
   image: text("image"),
-  createdAt: timestamp("created_at")
-    .$defaultFn(() => /* @__PURE__ */ new Date())
-    .notNull(),
-  updatedAt: timestamp("updated_at")
-    .$defaultFn(() => /* @__PURE__ */ new Date())
-    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   role: userRole("role").default("USER"),
 });
 
@@ -65,8 +60,8 @@ export const account = pgTable("account", {
   refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
   scope: text("scope"),
   password: text("password"),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const verification = pgTable("verification", {
@@ -88,6 +83,14 @@ export const robotModelTable = pgTable("robot_model", {
   modelType: text("model_type").unique().notNull(),
 });
 
+export const alertTable = pgTable("alerts", {
+  id: serial("id").primaryKey().notNull(),
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const robotsTable = pgTable("robots", {
   id: serial("id").primaryKey(),
   modelId: serial("model_id")
@@ -98,7 +101,7 @@ export const robotsTable = pgTable("robots", {
   ownerId: text("owner_id").references(() => user.id),
   customName: text("custom_name").default(""),
   createdAt: timestamp("created_at").defaultNow(),
-}); 
+});
 
 export const userRelation = relations(user, ({ many, one }) => ({
   robots: many(robotModelTable, {
