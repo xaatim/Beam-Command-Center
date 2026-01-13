@@ -9,10 +9,12 @@ export default function VideoElemt({
   robot,
   title,
   streamUrl,
+  showPlaceholder = true,
 }: {
   robot: userRobots;
   title: string;
   streamUrl: string;
+  showPlaceholder?: boolean;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -54,7 +56,7 @@ export default function VideoElemt({
                 e.currentTarget.style.display = "none";
               }}
             />
-          ) : (
+          ) : showPlaceholder ? (
             <div className="w-full h-full bg-background flex items-center justify-center">
               <div className="text-center text-gray-400 dark:text-gray-600">
                 <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -62,6 +64,8 @@ export default function VideoElemt({
                 <p className="text-sm">Video feed unavailable</p>
               </div>
             </div>
+          ) : (
+            <div className="w-full h-full bg-background" />
           )}
         </div>
 

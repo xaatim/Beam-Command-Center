@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import db from "../../drizzle/db";
 import {
   robotModelTable,
@@ -197,6 +197,14 @@ export async function getRobotsCountByModel() {
   .groupBy(robotModelTable.model);
 
   return result;
+}
+
+export type alertRecord = Awaited<ReturnType<typeof getLatestAlerts>>[number];
+export async function getLatestAlerts(limit = 20) {
+  return await db.query.alertTable.findMany({
+    limit,
+    orderBy: (table, { desc: descFn }) => descFn(table.createdAt),
+  });
 }
 
 export async function getAllUsers() {
