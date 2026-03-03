@@ -15,25 +15,31 @@ export type RobotControl = {
   mode: robotMode;
   twist?: TwistMessage;
 };
-export type videoMode = "rec_frames" | "live_frame";
+export type videoMode =
+  | "rec_frames"
+  | "live_frame"
+  | "restriction"
+  | "car_Identification";
 interface ServerToRobotEvent {
   "robot:controlMode": (RobotControlData: RobotControl) => void;
   "robot:videoMode": (vidoe: videoMode) => void;
 }
+type robotALertType = {
+  frame: Uint8Array;
+  mode: videoMode;
+};
 interface RobotToServerEvent {
   "robot:status": (mode: robotMode) => void;
   "robot:frame": (frame: Uint8Array) => void;
-  "robot:alert": (frame: Uint8Array) => void;
+  "robot:alert": (res: robotALertType) => void;
 }
-
 
 export interface ServerToClientEvents extends ServerToRobotEvent {
   "robot:stream": (frame: Uint8Array) => void;
-  "robot:joined": (joined:boolean) => void;
+  "robot:joined": (joined: boolean) => void;
   "robot:streamStop": (msg: { serialNo: string }) => void;
   "robot:statusUpdate": (mode: robotMode) => void;
   error: (msg: string) => void;
-  
 }
 export interface ClientToServerEvents extends RobotToServerEvent {
   "robot:join": (data: { serialNo: string }) => void;
@@ -45,8 +51,10 @@ export interface ClientToServerEvents extends RobotToServerEvent {
   "robot:videoMode": (data: { vidoeMode: videoMode; serialNo: string }) => void;
 }
 
-export interface AuthenticatedSocket
-  extends Socket<ClientToServerEvents, ServerToClientEvents> {
+export interface AuthenticatedSocket extends Socket<
+  ClientToServerEvents,
+  ServerToClientEvents
+> {
   userId?: string;
   robot?: robotType;
 }

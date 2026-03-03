@@ -1,6 +1,8 @@
 "use server";
 
-import { eq, and, sql, desc } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import db from "../../drizzle/db";
 import {
   robotModelTable,
@@ -8,9 +10,7 @@ import {
   robotsTable,
   userRoleType,
 } from "../../drizzle/schemas";
-import { headers } from "next/headers";
 import { auth } from "./auth";
-import { redirect } from "next/navigation";
 import { robotOwnershipSchema, robotOwnershipSchemaData } from "./zodTypes";
 
 export type robot = Awaited<ReturnType<typeof getAllRobots>>[number];
@@ -34,9 +34,9 @@ export async function getUserRobot(userId: string, robotId: number) {
         fn.and(fn.eq(tb.ownerId, userId), fn.eq(tb.id, robotId)),
       with: { modelRelation: true },
     });
-    return result
+    return result;
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
 type updateRobotProp = {
@@ -70,7 +70,7 @@ export async function updateRobotOwnerShip(formData: updateRobotProp) {
         customName,
       })
       .where(
-        and(eq(robotsTable.serialNo, serialNo), eq(robotsTable.key, robotKey))
+        and(eq(robotsTable.serialNo, serialNo), eq(robotsTable.key, robotKey)),
       )
       .returning();
     if (!result) {
@@ -112,7 +112,7 @@ export async function createRobot(values: { robotKey: string; model: string }) {
       .values({
         modelId: selecetdModel.id,
         serialNo: sql`${serialPrifx} || LPAD(nextval('${sql.raw(
-          robotSerialNoSeq.seqName!
+          robotSerialNoSeq.seqName!,
         )}')::text, 4, '0')`,
 
         key: robotKey,
@@ -188,22 +188,24 @@ export async function getServerReturnUrl() {
 }
 
 export async function getRobotsCountByModel() {
-  const result = await db.select({
-    model: robotModelTable.model,
-    count: sql<number>`count(${robotsTable.id})`,
-  })
-  .from(robotModelTable)
-  .leftJoin(robotsTable, eq(robotModelTable.id, robotsTable.modelId))
-  .groupBy(robotModelTable.model);
+  const result = await db
+    .select({
+      model: robotModelTable.model,
+      count: sql<number>`count(${robotsTable.id})`,
+    })
+    .from(robotModelTable)
+    .leftJoin(robotsTable, eq(robotModelTable.id, robotsTable.modelId))
+    .groupBy(robotModelTable.model);
 
   return result;
 }
 
 export type alertRecord = Awaited<ReturnType<typeof getLatestAlerts>>[number];
-export async function getLatestAlerts(limit = 20) {
+export async function getLatestAlerts(domain: string, limit = 20) {
   return await db.query.alertTable.findMany({
     limit,
     orderBy: (table, { desc: descFn }) => descFn(table.createdAt),
+    where: (tb, fn) => fn.eq(tb.domain, domain),
   });
 }
 

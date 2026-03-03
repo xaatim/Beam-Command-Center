@@ -70,10 +70,10 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(
-    () => /* @__PURE__ */ new Date()
+    () => /* @__PURE__ */ new Date(),
   ),
   updatedAt: timestamp("updated_at").$defaultFn(
-    () => /* @__PURE__ */ new Date()
+    () => /* @__PURE__ */ new Date(),
   ),
 });
 
@@ -86,6 +86,7 @@ export const robotModelTable = pgTable("robot_model", {
 export const alertTable = pgTable("alerts", {
   id: serial("id").primaryKey().notNull(),
   imageUrl: text("image_url").notNull(),
+  domain: text("domain").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -104,7 +105,7 @@ export const robotsTable = pgTable("robots", {
 });
 
 export const userRelation = relations(user, ({ many, one }) => ({
-  robots: many(robotModelTable, {
+  owner: many(robotModelTable, {
     relationName: "owner",
   }),
 }));
@@ -114,7 +115,7 @@ export const robotModelTableRelation = relations(
     robots: many(robotModelTable, {
       relationName: "modelRelation",
     }),
-  })
+  }),
 );
 
 export const robotTableRelation = relations(robotsTable, ({ one, many }) => ({

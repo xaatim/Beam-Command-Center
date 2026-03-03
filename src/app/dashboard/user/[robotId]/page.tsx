@@ -1,11 +1,21 @@
 import { AccessControlDashboard } from "@/components/AccessControlDashboard";
 import RobotControRoom from "@/components/RobotRoom";
-import { Auth, getLatestAlerts, getServerReturnUrl, getUserRobot } from "@/lib/serverq";
+import {
+  Auth,
+  getLatestAlerts,
+  getServerReturnUrl,
+  getUserRobot,
+} from "@/lib/serverq";
 import { redirect } from "next/navigation";
 
-export default async function Page({ params }: { params: { robotId: string } }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ robotId: string }>;
+}) {
   const refree = await getServerReturnUrl();
-  const robotId = Number(params.robotId);
+  const { robotId: rowRobotId } = await params;
+  const robotId = Number(rowRobotId);
   if (Number.isNaN(robotId)) redirect(refree);
 
   const session = await Auth();
@@ -15,11 +25,12 @@ export default async function Page({ params }: { params: { robotId: string } }) 
   if (!robot) redirect(refree);
 
   const modelType = robot.modelRelation.modelType?.toLowerCase() ?? "";
-  const isAccessControl = modelType.includes("access control");
+  const isAccessControl = modelType
+    .toLocaleLowerCase()
+    .includes("access control");
 
   if (isAccessControl) {
-    const alerts = await getLatestAlerts();
-    return <AccessControlDashboard robot={robot} alerts={alerts} />;
+    return <AccessControlDashboard robot={robot} />;
   }
 
   return <RobotControRoom intialRobot={robot} />;

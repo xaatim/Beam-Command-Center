@@ -59,13 +59,13 @@ io.on("connection", (socket: AuthenticatedSocket) => {
     sockets.add(socket.id);
     userSockets.set(socket.userId, sockets);
     console.log(
-      `User ${socket.userId} connected. Total connections: ${sockets.size}`
+      `User ${socket.userId} connected. Total connections: ${sockets.size}`,
     );
   }
 
   if (socket.robot) {
     console.log(
-      `Robot ${socket.robot.serialNo} connected by user ${socket.userId}`
+      `Robot ${socket.robot.serialNo} connected by user ${socket.userId}`,
     );
   }
 
@@ -74,7 +74,7 @@ io.on("connection", (socket: AuthenticatedSocket) => {
   socket.on("robot:join", ({ serialNo }) => {
     if (socket.userId) {
       console.log(
-        `User ${socket.userId} is attempting to join robot room: ${serialNo}`
+        `User ${socket.userId} is attempting to join robot room: ${serialNo}`,
       );
       socket.rooms.forEach((room) => {
         if (room !== socket.id) socket.leave(room);
@@ -102,14 +102,19 @@ io.on("connection", (socket: AuthenticatedSocket) => {
   });
 
   function foo() {}
-  socket.on("robot:alert", async (frame) => {
+  socket.on("robot:alert", async ({ frame, mode }) => {
     try {
       // console.log(frame);
       const imageBase64 = Buffer.from(frame).toString("base64");
       const dataUri = `data:image/jpeg;base64,${imageBase64}`;
-      console.log("image base 64 is :", dataUri);
+      if (!mode) {
+        console.log("Invalid alert data received");
+        return;
+      }
+
       await db.insert(alertTable).values({
         imageUrl: dataUri,
+        domain: mode,
       });
     } catch (error) {
       // console.error("failed to save, cause:", (error as Error).message);
@@ -155,7 +160,7 @@ io.on("connection", (socket: AuthenticatedSocket) => {
       if (sockets.size === 0) {
         userSockets.delete(socket.userId);
         console.log(
-          `All connections for user ${socket.userId} have disconnected.`
+          `All connections for user ${socket.userId} have disconnected.`,
         );
       }
     }

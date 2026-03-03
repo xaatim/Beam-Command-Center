@@ -1,19 +1,24 @@
 "use client";
 
-import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { ModeToggle } from "@/components/themeTogle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { alertRecord, userRobots } from "@/lib/serverq";
+import VideoElemt from "@/components/VideoElemt";
 import { useRobotStatus } from "@/hooks/useRobotStatus";
 import { useRobotStream } from "@/hooks/useRobotStream";
 import { useSocketIo } from "@/hooks/useSocketIo";
-import { ModeToggle } from "@/components/themeTogle";
-import VideoElemt from "@/components/VideoElemt";
-import { type videoMode } from "../../types/types";
+import { alertRecord, userRobots } from "@/lib/serverq";
+import { alertsQuery } from "@/queries/robot";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
@@ -30,25 +35,51 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { type videoMode } from "../../types/types";
 
 type AccessControlDashboardProps = {
   robot: userRobots;
-  alerts: alertRecord[];
 };
 
 // Simple mock data to keep the UI populated until real telemetry is wired.
 const accessLog = [
-  { id: 1, name: "Sarah Johnson", time: "2 min ago", status: "granted", location: "Main Entrance" },
-  { id: 2, name: "Michael Chen", time: "5 min ago", status: "granted", location: "Restricted Area" },
-  { id: 3, name: "Unknown Person", time: "12 min ago", status: "denied", location: "Restricted Area" },
-  { id: 4, name: "Emily Davis", time: "18 min ago", status: "granted", location: "Main Entrance" },
-  { id: 5, name: "John Smith", time: "23 min ago", status: "granted", location: "Main Entrance" },
+  {
+    id: 1,
+    name: "Sarah Johnson",
+    time: "2 min ago",
+    status: "granted",
+    location: "Main Entrance",
+  },
+  {
+    id: 2,
+    name: "Michael Chen",
+    time: "5 min ago",
+    status: "granted",
+    location: "Restricted Area",
+  },
+  {
+    id: 3,
+    name: "Unknown Person",
+    time: "12 min ago",
+    status: "denied",
+    location: "Restricted Area",
+  },
+  {
+    id: 4,
+    name: "Emily Davis",
+    time: "18 min ago",
+    status: "granted",
+    location: "Main Entrance",
+  },
+  {
+    id: 5,
+    name: "John Smith",
+    time: "23 min ago",
+    status: "granted",
+    location: "Main Entrance",
+  },
 ];
 
 const intruderAlerts = [
@@ -56,10 +87,14 @@ const intruderAlerts = [
   { id: 2, time: "35 min ago", location: "Restricted Area", emailSent: true },
 ];
 
-export function AccessControlDashboard({ robot, alerts }: AccessControlDashboardProps) {
+export function AccessControlDashboard({ robot }: AccessControlDashboardProps) {
   const { emit, isConnected } = useSocketIo();
   const { status, toggleRobotControl } = useRobotStatus(robot.serialNo);
   const [videoMode, setVideoMode] = useState<videoMode>("live_frame");
+  const { data: alerts, isLoading: isLoadingAlerts } = useQuery(
+    alertsQuery(videoMode),
+  );
+
   const streamUrl = useRobotStream({ selectedRobot: robot, videoMode });
   const [selectedAlert, setSelectedAlert] = useState<alertRecord | null>(null);
 
@@ -102,11 +137,11 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
         color: "text-primary",
       },
     ],
-    []
+    [],
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-full w-full bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -142,7 +177,7 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="w-7xl mx-auto  py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
@@ -150,10 +185,14 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {stat.value}
+                  </p>
                   <p className="text-xs text-muted-foreground">{stat.trend}</p>
                 </div>
-                <div className={`size-12 rounded-lg bg-secondary/50 flex items-center justify-center ${stat.color}`}>
+                <div
+                  className={`size-12 rounded-lg bg-secondary/50 flex items-center justify-center ${stat.color}`}
+                >
                   <stat.icon className="size-6" />
                 </div>
               </div>
@@ -165,32 +204,37 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
           <div className="lg:col-span-2 space-y-6">
             {/* Live feed */}
             <div className="space-y-3">
-              <Tabs defaultValue="live_feed" className="w-full">
+              <Tabs defaultValue="restriction" className="w-full">
                 <TabsList className="w-full">
                   <TabsTrigger
                     className="w-full"
-                    value="live_feed"
-                    onClick={() => setVideoMode("live_frame")}
+                    value="restriction"
+                    onClick={() => {
+                      setVideoMode("restriction");
+                    }}
                   >
                     Restriction
                   </TabsTrigger>
+
                   <TabsTrigger
                     className="w-full"
-                    value="rec_feed"
-                    onClick={() => setVideoMode("rec_frames")}
+                    value="car_Identification"
+                    onClick={() => {
+                      setVideoMode("car_Identification");
+                    }}
                   >
                     Car Identification
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="live_feed">
+                <TabsContent value="restriction">
                   <VideoElemt
                     robot={robot}
                     title="Restricted Area Feed"
                     streamUrl={streamUrl}
                   />
                 </TabsContent>
-                <TabsContent value="rec_feed">
+                <TabsContent value="car_Identification">
                   <VideoElemt
                     robot={robot}
                     title="Parking Feed"
@@ -205,7 +249,9 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Clock className="size-5 text-accent" />
-                  <h2 className="text-lg font-semibold text-foreground">Access Log</h2>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Access Log
+                  </h2>
                 </div>
                 <Badge variant="secondary" className="text-xs">
                   Last 24 hours
@@ -221,7 +267,9 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
                       <div className="flex items-center gap-3">
                         <div
                           className={`size-10 rounded-full flex items-center justify-center ${
-                            log.status === "granted" ? "bg-chart-4/20" : "bg-destructive/20"
+                            log.status === "granted"
+                              ? "bg-chart-4/20"
+                              : "bg-destructive/20"
                           }`}
                         >
                           {log.status === "granted" ? (
@@ -231,14 +279,24 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{log.name}</p>
-                          <p className="text-sm text-muted-foreground">{log.location}</p>
+                          <p className="font-medium text-foreground">
+                            {log.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {log.location}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <Badge
-                          variant={log.status === "granted" ? "outline" : "destructive"}
-                          className={log.status === "granted" ? "bg-chart-4/10 text-chart-4 border-chart-4/20" : ""}
+                          variant={
+                            log.status === "granted" ? "outline" : "destructive"
+                          }
+                          className={
+                            log.status === "granted"
+                              ? "bg-chart-4/10 text-chart-4 border-chart-4/20"
+                              : ""
+                          }
                         >
                           {log.status}
                         </Badge>
@@ -256,68 +314,89 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
 
           <div className="space-y-6">
             {/* Alerts */}
+
             <Card className="p-6 bg-card border-border">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="size-5 text-destructive" />
-                  <h2 className="text-lg font-semibold text-foreground">Intruder Alerts</h2>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Intruder Alerts
+                  </h2>
                 </div>
                 <Badge variant="destructive" className="text-xs">
-                  {alerts.length} Active
+                  {alerts?.length} Active
                 </Badge>
               </div>
-              {alerts.length === 0 ? (
+              {alerts && alerts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No alerts yet.</p>
               ) : (
                 <ScrollArea className="h-80 pr-3">
                   <div className="space-y-3">
-                    {alerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className="p-4 rounded-lg border border-destructive/30 bg-gradient-to-br from-destructive/10 via-background to-background shadow-sm"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-16 h-16 rounded-md overflow-hidden border border-border bg-secondary/40 flex-shrink-0">
-                            <img
-                              src={alert.imageUrl}
-                              alt="Alert snapshot"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs bg-secondary/40">
-                                  {videoMode === "live_frame" ? "Restricted Area" : "Car Identification"}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(alert.createdAt).toLocaleString()}
-                                </span>
+                    {(!alerts || isLoadingAlerts) && "loading"}
+                    {alerts &&
+                      alerts
+                        .filter((alert) => alert.domain === videoMode)
+                        .map((alert) => (
+                          <div
+                            key={alert.id}
+                            className="p-4 rounded-lg border border-destructive/30 bg-gradient-to-br from-destructive/10 via-background to-background shadow-sm"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-16 h-16 rounded-md overflow-hidden border border-border bg-secondary/40 flex-shrink-0">
+                                <img
+                                  src={alert.imageUrl}
+                                  alt="Alert snapshot"
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
-                              <Badge variant="destructive" className="text-[10px]">
-                                Alert
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-foreground font-semibold">Unknown person detected</p>
-                            <div className="flex items-center justify-between">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-destructive/30 hover:bg-destructive/15 bg-transparent"
-                                onClick={() => setSelectedAlert(alert)}
-                              >
-                                <Camera className="size-4 mr-2" />
-                                View Photo
-                              </Button>
-                              <div className="flex items-center gap-1 text-xs text-chart-4">
-                                <Mail className="size-3" />
-                                Sent
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-secondary/40"
+                                    >
+                                      {videoMode}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(
+                                        alert.createdAt,
+                                      ).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <Badge
+                                    variant="destructive"
+                                    className="text-[10px]"
+                                  >
+                                    Alert
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-foreground font-semibold">
+                                  Unknown{" "}
+                                  {videoMode === "restriction"
+                                    ? "person"
+                                    : "car"}{" "}
+                                  detected
+                                </p>
+                                <div className="flex items-center justify-between">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-destructive/30 hover:bg-destructive/15 bg-transparent"
+                                    onClick={() => setSelectedAlert(alert)}
+                                  >
+                                    <Camera className="size-4 mr-2" />
+                                    View Photo
+                                  </Button>
+                                  <div className="flex items-center gap-1 text-xs text-chart-4">
+                                    <Mail className="size-3" />
+                                    Sent
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        ))}
                   </div>
                   <ScrollBar orientation="vertical" />
                 </ScrollArea>
@@ -328,12 +407,16 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
             <Card className="p-6 bg-card border-border">
               <div className="flex items-center gap-2 mb-4">
                 <Activity className="size-5 text-accent" />
-                <h2 className="text-lg font-semibold text-foreground">System Status</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  System Status
+                </h2>
               </div>
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-secondary/50 border border-border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">Restricted Door</span>
+                    <span className="text-sm font-medium text-foreground">
+                      Restricted Door
+                    </span>
                     {controlMode === "manual" ? (
                       <Unlock className="size-5 text-destructive" />
                     ) : (
@@ -364,13 +447,26 @@ export function AccessControlDashboard({ robot, alerts }: AccessControlDashboard
                     value={isConnected ? "online" : "offline"}
                     healthy={isConnected}
                   />
-                  <StatusRow icon={Battery} label="Battery" value="90%" healthy />
-                  <StatusRow icon={Lock} label="Encryption" value="active" healthy />
+                  <StatusRow
+                    icon={Battery}
+                    label="Battery"
+                    value="90%"
+                    healthy
+                  />
+                  <StatusRow
+                    icon={Lock}
+                    label="Encryption"
+                    value="active"
+                    healthy
+                  />
                 </div>
               </div>
             </Card>
 
-            <Dialog open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)}>
+            <Dialog
+              open={!!selectedAlert}
+              onOpenChange={(open) => !open && setSelectedAlert(null)}
+            >
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Intruder Snapshot</DialogTitle>
@@ -405,7 +501,9 @@ function StatusRow({
   return (
     <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
       <div className="flex items-center gap-2">
-        <Icon className={`size-4 ${healthy ? "text-chart-4" : "text-destructive"}`} />
+        <Icon
+          className={`size-4 ${healthy ? "text-chart-4" : "text-destructive"}`}
+        />
         <span className="text-sm text-foreground">{label}</span>
       </div>
       <Badge
